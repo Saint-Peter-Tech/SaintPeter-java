@@ -15,12 +15,12 @@ public class GerarLog {
         Thread.sleep(3000);
 
         for(int i = 0; i < 10; i++) {
-            int random = gerarRandom();
+            int random = gerarRandom(3);
             String mensagem = gerarMensagem(random);
 
             System.out.println(getTimestamp() + mensagem);
 
-            Thread.sleep(5000);
+            Thread.sleep(3000);
         }
 
         System.out.println(getTimestamp() + " Encerrando o programa...");
@@ -40,10 +40,10 @@ public class GerarLog {
     }
 
     // Gerar número random de 0 a 2:
-    public static int gerarRandom(){
+    public static int gerarRandom(int length){
         Random random = new Random();
 
-        int randomInt = random.nextInt(3);
+        int randomInt = random.nextInt(length);
         return randomInt;
     }
 
@@ -51,21 +51,57 @@ public class GerarLog {
     public static String gerarMensagem(int randomTipo) {
 
         List<String> listaTipo = new ArrayList<>(Arrays.asList("INFO","ERRO","ALERTA"));
-        List<String> listaInfo = new ArrayList<>(Arrays.asList("ETL inicializada pelo usuário: jaime@suporte.com ","Login efetuado pelo usuário: ana@email.com","Login efetuado pelo usuário: bruno@email.com"));
-        List<String> listaErro = new ArrayList<>(Arrays.asList("Não foi possível conectar ao banco de dados","E-mail joao@email.com não cadastrado no sistema","Instância EC2 indisponível no momento"));
-        List<String> listaAlerta = new ArrayList<>(Arrays.asList("CPU > 90% do monitor 4F2A9B81C3D5 do hospital H. Cor","Temperatura > 95Cº do monitor E7A2C90D5F3B do hospital São Luiz","Rede DESCONECTADA no monitor 1B8D4C62A0E9"));
+        List<String> listaInfo = new ArrayList<>(Arrays.asList(
+                "ETL inicializada pelo usuário: victor@email.com",
+                "ETL encerrada pelo usuário: victor@email.com",
+                "Login efetuado pelo usuário: ana@email.com (ProLife)",
+                "Login efetuado pelo usuário: bruno@email.com (MultiMed)",
+                "Login efetuado pelo usuário: jaime@email.com (ProLife)",
+                "Login efetuado pelo usuário: carlos@suporte.com (ProLife)",
+                "Logout efetuado pelo usuário: ana@email.com (ProLife)",
+                "Logout efetuado pelo usuário: bruno@email.com (MultiMed)",
+                "Logout efetuado pelo usuário: jaime@email.com (ProLife)",
+                "Logout efetuado pelo usuário: carlos@suporte.com (ProLife)"
+        ));
+        List<String> listaErro = new ArrayList<>(Arrays.asList(
+                "Não foi possível conectar ao banco de dados",
+                "Tentativa de login: e-mail joao@email.com não cadastrado no sistema",
+                "Instância EC2 indisponível no momento",
+                "Não foi possível encontrar o arquivo dados_hadware.csv"
+        ));
+        List<String> listaAlerta = new ArrayList<>(Arrays.asList(
+                "CPU > 90% no monitor 1B8D4C62A0E9 (H. Cor - ProLife)",
+                "RAM > 75% no monitor 1B8D4C62A0E9 (H. Cor - ProLife)",
+                "Temperatura > 95Cº no monitor 1B8D4C62A0E9 (H. Cor - ProLife)",
+                "Rede DESCONECTADA no monitor 1B8D4C62A0E9 (H. Cor - ProLife)",
+                "CPU > 90% no monitor 4F2A9B81C3D5 (H. Cor - ProLife)",
+                "RAM > 75% no monitor 4F2A9B81C3D5 (H. Cor - ProLife)",
+                "Temperatura > 95Cº no monitor 4F2A9B81C3D5 (H. Cor - ProLife)",
+                "Rede DESCONECTADA no monitor 4F2A9B81C3D5 (H. Cor - ProLife)",
+                "CPU > 90% no monitor E7A2C90D5F3B (Hospital São Luiz - MultiMed)",
+                "RAM > 75% no monitor E7A2C90D5F3B (Hospital São Luiz - MultiMed)",
+                "Temperatura > 95Cº no monitor E7A2C90D5F3B (Hospital São Luiz - MultiMed)",
+                "Rede DESCONECTADA no monitor E7A2C90D5F3B (Hospital São Luiz - MultiMed)",
+                "CPU > 90% no monitor A89109BD7F37 (Hospital São Luiz - MultiMed)",
+                "RAM > 75% no monitor A89109BD7F37 (Hospital São Luiz - MultiMed)",
+                "Temperatura > 95Cº no monitor A89109BD7F37 (Hospital São Luiz - MultiMed)",
+                "Rede DESCONECTADA no monitor A89109BD7F37 (Hospital São Luiz - MultiMed)"
+        ));
 
         String item;
 
         String tipo = listaTipo.get(randomTipo);
 
-        int randomItem = gerarRandom();
+        int randomItem;
 
         if(randomTipo == 0) {
+            randomItem = gerarRandom(listaInfo.size());
             item = listaInfo.get(randomItem);
         } else if (randomTipo == 1) {
+            randomItem = gerarRandom(listaErro.size());
             item = listaErro.get(randomItem);
         } else {
+            randomItem = gerarRandom(listaAlerta.size());
             item = listaAlerta.get(randomItem);
         }
 
