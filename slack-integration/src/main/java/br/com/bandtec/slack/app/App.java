@@ -14,7 +14,7 @@ public class App {
         
         JSONObject json = new JSONObject();
         
-        json.put("text", "Fácil né? :shrug:");
+        json.put("text", "ALERTA! :siren:\nUnidade Jardins registrou consumo de rede acima de 85%!");
         
         Slack.sendMessage(json);
     }
