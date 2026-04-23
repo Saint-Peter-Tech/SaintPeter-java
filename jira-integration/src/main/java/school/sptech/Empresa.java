@@ -8,12 +8,14 @@ public class Empresa {
     private String nome;
     private String key;
     private List<Unidade> unidades = new ArrayList<>();
+    private final String url;
 
-    public Empresa(Integer id, String nome, String key, List<Unidade> unidades) {
-        this.id = id;
-        this.nome = nome;
-        this.key = key;
+    public Empresa(Integer id, String nome, String key, List<Unidade> unidades, String url) {
+        this.url = url;
         this.unidades = unidades;
+        this.key = key;
+        this.nome = nome;
+        this.id = id;
     }
 
     public Integer getId() {
@@ -30,5 +32,9 @@ public class Empresa {
 
     public List<Unidade> getUnidades() {
         return unidades;
+    }
+
+    public String getUrl() {
+        return url;
     }
 }

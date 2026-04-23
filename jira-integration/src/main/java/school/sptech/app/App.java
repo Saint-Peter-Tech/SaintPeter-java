@@ -1,8 +1,10 @@
 package school.sptech.app;
 
+import org.json.JSONObject;
 import school.sptech.Empresa;
 import school.sptech.Unidade;
 import school.sptech.config.Jira;
+import school.sptech.config.Slack;
 
 import java.util.*;
 
@@ -16,23 +18,23 @@ public class App {
 
         // Criando Unidades
         List<Unidade> unidadesPhilips = new ArrayList<>();
-        Unidade unidadePhilips1 = new Unidade(1, "São Luiz Itaim");
-        Unidade unidadePhilips2 = new Unidade(2, "São Luiz Morumbi");
+        Unidade unidadePhilips1 = new Unidade(1, "São Luiz Itaim", "");
+        Unidade unidadePhilips2 = new Unidade(2, "São Luiz Morumbi", "");
         unidadesPhilips.addAll(Arrays.asList(unidadePhilips1, unidadePhilips2));
         List<Unidade> unidadesCmos = new ArrayList<>();
-        Unidade unidadeCmos1 = new Unidade(1, "Unimed ABC");
-        Unidade unidadeCmos2 = new Unidade(2, "Unimed Guarulhos");
+        Unidade unidadeCmos1 = new Unidade(1, "Unimed ABC", "");
+        Unidade unidadeCmos2 = new Unidade(2, "Unimed Guarulhos", "");
         unidadesCmos.addAll(Arrays.asList(unidadeCmos1, unidadeCmos2));
         List<Unidade> unidadesProtec = new ArrayList<>();
-        Unidade unidadeProtec1 = new Unidade(1, "Einstein Alphaville");
-        Unidade unidadeProtec2 = new Unidade(2, "Einstein Ibirapuera");
+        Unidade unidadeProtec1 = new Unidade(1, "Einstein Alphaville", "");
+        Unidade unidadeProtec2 = new Unidade(2, "Einstein Ibirapuera", "");
         unidadesProtec.addAll(Arrays.asList(unidadeProtec1, unidadeProtec2));
 
         // Criando empresas
         List<Empresa> empresas = new ArrayList<>();
-        Empresa empresa1 = new Empresa(1, "Philips", "PHILIPS", unidadesPhilips);
-        Empresa empresa2 = new Empresa(2, "CMOS Drake", "CMOS", unidadesCmos);
-        Empresa empresa3 = new Empresa(3, "Protec", "PROTEC", unidadesProtec);
+        Empresa empresa1 = new Empresa(1, "Philips", "PHILIPS", unidadesPhilips, "");
+        Empresa empresa2 = new Empresa(2, "CMOS Drake", "CMOS", unidadesCmos, "");
+        Empresa empresa3 = new Empresa(3, "Protec", "PROTEC", unidadesProtec, "");
         empresas.addAll(Arrays.asList(empresa1, empresa2, empresa3));
 
         // Criando lista de alertas possíveis
@@ -51,11 +53,25 @@ public class App {
         for (Empresa empresaAtual : empresas) {
             if (empresaAtual.getId().equals(empresaIdAleatorio)){
                 String nomeUnidade = empresaAtual.getUnidades().get(unidadeIdAleatorio).getNome();
+                String msg = nomeUnidade + alertas.get(alertaIdAleatorio);
+
                 String response = jira.createIssue(
                         empresaAtual.getKey(), // Key do projeto
-                        nomeUnidade + alertas.get(alertaIdAleatorio), // Nome da issue
+                        msg, // Nome da issue
                         "Task" // Tipo da issue
                 );
+
+                String webHookEmpresa = empresaAtual.getUrl();
+                JSONObject jsonEmpresa = new JSONObject();
+                jsonEmpresa.put("text", "ALERTA!\n" + msg);
+                Slack.sendMessage(webHookEmpresa, jsonEmpresa);
+
+                String webHookUnidade = empresaAtual.getUnidades().get(unidadeIdAleatorio).getUrl();
+                JSONObject jsonUnidade = new JSONObject();
+                jsonUnidade.put("text", "ALERTA!\n" + msg);
+                Slack.sendMessage(webHookUnidade, jsonUnidade);
+
+
                 System.out.println(response);
                 return;
             }
