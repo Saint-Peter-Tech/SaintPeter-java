@@ -137,7 +137,7 @@ public class App {
                             "• *Local:* %s\n" +
                             "• *Componente Afetado:* %s\n" +
                             "• *Ocorrências Críticas:* %d registradas na última hora.\n" +
-                            "• *Ação:* Verificar painel de monitoramento e contactar suporte técnico local.",
+                            "• *Troubleshooting inicial:* Verificar dashboard de alertas e entrar em contato com suporte técnico local.",
                     unidade.getNome(), componente, quantidadeCriticos
             );
 
