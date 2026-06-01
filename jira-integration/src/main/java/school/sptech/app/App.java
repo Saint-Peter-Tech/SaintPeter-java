@@ -1,79 +1,158 @@
 package school.sptech.app;
 
 import org.json.JSONObject;
-import school.sptech.Empresa;
+import school.sptech.Hospital;
 import school.sptech.Unidade;
 import school.sptech.config.Jira;
+import school.sptech.config.S3;
 import school.sptech.config.Slack;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class App {
-    public static void main(String[] args) throws Exception {
-        // Definindo as credenciais do Jira
-        String baseUrl = "";
-        String email = "";
-        String apiToken = "";
-        Jira jira = new Jira(baseUrl, email, apiToken);
+    public static void main(String[] args) {
+        String bucketS3 = "";
 
-        // Criando Unidades
-        List<Unidade> unidadesPhilips = new ArrayList<>();
-        Unidade unidadePhilips1 = new Unidade(1, "São Luiz Itaim", "");
-        Unidade unidadePhilips2 = new Unidade(2, "São Luiz Morumbi", "");
-        unidadesPhilips.addAll(Arrays.asList(unidadePhilips1, unidadePhilips2));
-        List<Unidade> unidadesCmos = new ArrayList<>();
-        Unidade unidadeCmos1 = new Unidade(1, "Unimed ABC", "");
-        Unidade unidadeCmos2 = new Unidade(2, "Unimed Guarulhos", "");
-        unidadesCmos.addAll(Arrays.asList(unidadeCmos1, unidadeCmos2));
-        List<Unidade> unidadesProtec = new ArrayList<>();
-        Unidade unidadeProtec1 = new Unidade(1, "Einstein Alphaville", "");
-        Unidade unidadeProtec2 = new Unidade(2, "Einstein Ibirapuera", "");
-        unidadesProtec.addAll(Arrays.asList(unidadeProtec1, unidadeProtec2));
+        Jira jira = new Jira(
+                "",
+                "",
+                ""
+        );
 
-        // Criando empresas
-        List<Empresa> empresas = new ArrayList<>();
-        Empresa empresa1 = new Empresa(1, "Philips", "PHILIPS", unidadesPhilips, "");
-        Empresa empresa2 = new Empresa(2, "CMOS Drake", "CMOS", unidadesCmos, "");
-        Empresa empresa3 = new Empresa(3, "Protec", "PROTEC", unidadesProtec, "");
-        empresas.addAll(Arrays.asList(empresa1, empresa2, empresa3));
+        S3 s3 = new S3(bucketS3);
+        String webhookCanalGeral = "";
 
-        // Criando lista de alertas possíveis
-        Map<Integer, String> alertas = new HashMap<>(Map.of(
-                1, ": Uso de rede acima do recomendado",
-                2, ": Porcentagem de utilização de monitores acima de 85%",
-                3, ": Quantidade elevada de monitores com risco de obsolescência",
-                4, ": Monitores com calibração atrasada"
+        List<Unidade> unidades = new ArrayList<>(Arrays.asList(
+                new Unidade(1, "Unidade Vila da Saúde", ""),
+                new Unidade(2, "Unidade Jardim Paulista", ""),
+                new Unidade(3, "Unidade Sptech", "")
         ));
 
-        // Gerando alerta para uma unidade específica
-        Integer unidadeIdAleatorio = (int) (Math.random() * 2);
-        Integer empresaIdAleatorio = (int) (Math.random() * 3) + 1;
-        Integer alertaIdAleatorio = (int) (Math.random() * 4) + 1;
+        Hospital hospital = new Hospital(1, "Hospital Nova Esperança", "PHILIPS", unidades, webhookCanalGeral);
+        String dataUltimaVerificacao = "";
 
-        for (Empresa empresaAtual : empresas) {
-            if (empresaAtual.getId().equals(empresaIdAleatorio)){
-                String nomeUnidade = empresaAtual.getUnidades().get(unidadeIdAleatorio).getNome();
-                String msg = nomeUnidade + alertas.get(alertaIdAleatorio);
+        System.out.println("Monitoramento Iniciado...");
 
-                String response = jira.createIssue(
-                        empresaAtual.getKey(), // Key do projeto
-                        msg, // Nome da issue
-                        "Task" // Tipo da issue
-                );
+        while (true) {
+            try {
+                System.out.println("Verificando S3 por atualizações...");
 
-                String webHookEmpresa = empresaAtual.getUrl();
-                JSONObject jsonEmpresa = new JSONObject();
-                jsonEmpresa.put("text", "ALERTA!\n" + msg);
-                Slack.sendMessage(webHookEmpresa, jsonEmpresa);
+                String caminhoMacroS3 = String.format("client/empresa_2/hospital_%d/hospital.json", hospital.getId());
+                String hospitalJsonTexto = s3.lerArquivoJson(caminhoMacroS3);
 
-                String webHookUnidade = empresaAtual.getUnidades().get(unidadeIdAleatorio).getUrl();
-                JSONObject jsonUnidade = new JSONObject();
-                jsonUnidade.put("text", "ALERTA!\n" + msg);
-                Slack.sendMessage(webHookUnidade, jsonUnidade);
+                if (hospitalJsonTexto != null) {
+                    JSONObject hospitalJson = new JSONObject(hospitalJsonTexto);
+                    String ultimaAtualizacaoJson = hospitalJson.getString("ultimaAtualizacao");
 
+                    if (!ultimaAtualizacaoJson.equals(dataUltimaVerificacao)) {
+                        System.out.println("Nova atualização da ETL detectada!");
+                        dataUltimaVerificacao = ultimaAtualizacaoJson;
 
-                System.out.println(response);
-                return;
+                        enviarRelatorioGeral(hospitalJson, hospital.getUrl());
+
+                        processarAlertasPorResumo(hospitalJson, hospital, jira);
+                    } else {
+                        System.out.println("Nenhuma mudança no hospital.json desde a última checagem.");
+                    }
+                }
+                Thread.sleep(60000);
+            } catch (InterruptedException e) {
+                System.out.println("O loop foi interrompido: " + e.getMessage());
+                break;
+            } catch (Exception e) {
+                System.out.println("Erro no monitoramento: " + e.getMessage());
+            }
+        }
+    }
+
+    public static void enviarRelatorioGeral(JSONObject hospitalJson, String webhookGeral) throws Exception {
+        String nomeHospital = hospitalJson.getString("nome");
+        String dataHora = hospitalJson.getString("ultimaAtualizacao");
+
+        JSONObject alertasSemanais = hospitalJson.getJSONObject("alertasSemanais");
+        JSONObject componentesGerais = alertasSemanais.getJSONObject("porComponente");
+        JSONObject criticos = hospitalJson.getJSONObject("criticos");
+        JSONObject componentesCriticos = criticos.getJSONObject("porComponente");
+
+        StringBuilder relatorio = new StringBuilder();
+        relatorio.append(String.format("📊 *Nova captura realizada - %s*\n", nomeHospital));
+        relatorio.append(String.format("📅 _Horário: %s_\n\n", dataHora));
+
+        relatorio.append("⚠️ *Alertas Gerais Semanais:*\n");
+        relatorio.append(String.format("• CPU: %d | RAM: %d | Disco: %d | Rede: %d\n",
+                componentesGerais.getInt("cpu"), componentesGerais.getInt("ram"),
+                componentesGerais.getInt("disco"), componentesGerais.getInt("rede")));
+        relatorio.append(String.format("*Total: %d*\n\n", alertasSemanais.getInt("totalAlertas")));
+
+        relatorio.append("🚨 *Alertas Críticos Ativos:*\n");
+        relatorio.append(String.format("• CPU: %d | RAM: %d | Disco: %d | Rede: %d\n",
+                componentesCriticos.getInt("cpuCritico"), componentesCriticos.getInt("ramCritico"),
+                componentesCriticos.getInt("discoCritico"), componentesCriticos.getInt("redeCritico")));
+        relatorio.append(String.format("*Total Críticos: %d*\n\n", criticos.getInt("totalCriticos")));
+
+        JSONObject payloadSlack = new JSONObject().put("text", relatorio.toString());
+        Slack.sendMessage(webhookGeral, payloadSlack);
+        System.out.println("Relatório enviado ao Slack Geral.");
+    }
+
+    private static void processarAlertasPorResumo(JSONObject hospitalJson, Hospital hospital, Jira jira) {
+        JSONObject unidadesJson = hospitalJson.getJSONObject("unidades");
+
+        for (String idKey : unidadesJson.keySet()) {
+            JSONObject uJson = unidadesJson.getJSONObject(idKey);
+            int criticosDaUnidade = uJson.getInt("totalCriticos");
+
+            if (criticosDaUnidade > 0) {
+                int idUnidadeS3 = Integer.parseInt(idKey);
+                Unidade unidadeAlvo = null;
+
+                for (Unidade uni : hospital.getUnidades()) {
+                    if (uni.getId() == idUnidadeS3) {
+                        unidadeAlvo = uni;
+                        break;
+                    }
+                }
+
+                if (unidadeAlvo == null) {
+                    System.out.println("⚠Unidade ID " + idKey + " não encontrada.");
+                    continue;
+                }
+
+                JSONObject detalhesCriticos = uJson.getJSONObject("detalhesCriticos");
+
+                verificarECriticarComponente(unidadeAlvo, "CPU", detalhesCriticos.getInt("cpuCritico"), hospital, jira);
+                verificarECriticarComponente(unidadeAlvo, "RAM", detalhesCriticos.getInt("ramCritico"), hospital, jira);
+                verificarECriticarComponente(unidadeAlvo, "Disco", detalhesCriticos.getInt("discoCritico"), hospital, jira);
+                verificarECriticarComponente(unidadeAlvo, "Rede", detalhesCriticos.getInt("redeCritico"), hospital, jira);
+            }
+        }
+    }
+
+    private static void verificarECriticarComponente(Unidade unidade, String componente, int quantidadeCriticos, Hospital hospital, Jira jira) {
+        if (quantidadeCriticos > 0) {
+            String msgAlerta = String.format(
+                    "🚨 *ALERTA CRÍTICO DE INFRAESTRUTURA*\n" +
+                            "• *Local:* %s\n" +
+                            "• *Componente Afetado:* %s\n" +
+                            "• *Ocorrências Críticas:* %d registradas na última hora.\n" +
+                            "• *Ação:* Verificar painel de monitoramento e contactar suporte técnico local.",
+                    unidade.getNome(), componente, quantidadeCriticos
+            );
+
+            try {
+                JSONObject pacoteUnidade = new JSONObject().put("text", msgAlerta);
+                Slack.sendMessage(unidade.getUrl(), pacoteUnidade);
+
+                String tituloJira = String.format("Incidente Crítico - %s na %s (%d ocorrências)",
+                        componente, unidade.getNome(), quantidadeCriticos);
+
+                jira.createIssue(hospital.getKey(), tituloJira, "Task");
+
+                System.out.println("Incidente de " + componente + " enviado para " + unidade.getNome() + " via Slack/Jira.");
+            } catch (Exception e) {
+                System.out.println("Falha ao despachar alerta: " + e.getMessage());
             }
         }
     }
