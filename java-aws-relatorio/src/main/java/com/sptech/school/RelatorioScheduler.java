@@ -18,7 +18,7 @@ public class RelatorioScheduler {
 
     @Scheduled(fixedRate = 60000)
     public void gerarRelatorios() {
-        String bucket = "s3-teste-sprint";
+        String bucket = "saintpeter";
 
         List<String> empresas = S3Empresa.listarEmpresas(client, bucket);
 
