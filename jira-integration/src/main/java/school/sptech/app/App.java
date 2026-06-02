@@ -13,21 +13,21 @@ import java.util.List;
 
 public class App {
     public static void main(String[] args) {
-        String bucketS3 = "";
+        String bucketS3 = "saintpeter";
 
         Jira jira = new Jira(
-                "",
-                "",
-                ""
+                "URL DO JIRA",
+                "EMAIL DA SAINT PETER",
+                "TOKEN DA API DO JIRA"
         );
 
         S3 s3 = new S3(bucketS3);
-        String webhookCanalGeral = "";
+        String webhookCanalGeral = "WEBHOOK DO CANAL GERAL";
 
         List<Unidade> unidades = new ArrayList<>(Arrays.asList(
-                new Unidade(1, "Unidade Vila da Saúde", ""),
-                new Unidade(2, "Unidade Jardim Paulista", ""),
-                new Unidade(3, "Unidade Sptech", "")
+                new Unidade(1, "Unidade Vila da Saúde", "WEBHOOK DA UNIDADE"),
+                new Unidade(2, "Unidade Jardim Paulista", "WEBHOOK DA UNIDADE"),
+                new Unidade(3, "Unidade Sptech", "WEBHOOK DA UNIDADE")
         ));
 
         Hospital hospital = new Hospital(1, "Hospital Nova Esperança", "PHILIPS", unidades, webhookCanalGeral);
@@ -80,13 +80,13 @@ public class App {
         relatorio.append(String.format("📊 *Nova captura realizada - %s*\n", nomeHospital));
         relatorio.append(String.format("📅 _Horário: %s_\n\n", dataHora));
 
-        relatorio.append("⚠️ *Alertas Gerais Semanais:*\n");
+        relatorio.append("⚠️ *Alertas Semanais (Ultrapassaram o limite):*\n");
         relatorio.append(String.format("• CPU: %d | RAM: %d | Disco: %d | Rede: %d\n",
                 componentesGerais.getInt("cpu"), componentesGerais.getInt("ram"),
                 componentesGerais.getInt("disco"), componentesGerais.getInt("rede")));
         relatorio.append(String.format("*Total: %d*\n\n", alertasSemanais.getInt("totalAlertas")));
 
-        relatorio.append("🚨 *Alertas Críticos Ativos:*\n");
+        relatorio.append("🚨 *Alertas Críticos Semanais (Ultrapassaram 10% do limite):*\n");
         relatorio.append(String.format("• CPU: %d | RAM: %d | Disco: %d | Rede: %d\n",
                 componentesCriticos.getInt("cpuCritico"), componentesCriticos.getInt("ramCritico"),
                 componentesCriticos.getInt("discoCritico"), componentesCriticos.getInt("redeCritico")));
